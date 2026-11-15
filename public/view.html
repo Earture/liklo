@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>录播报告库 · liklo 公开页</title>
+  <meta name="description" content="B站录播自动转录 + AI 辛辣锐评，只读公开报告库。" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/view.css" />
+</head>
+<body>
+  <header class="pub-header">
+    <h1>📚 录播报告库</h1>
+    <p class="sub">自动下载 · 自动转录 · AI 详细总结与辛辣锐评 —— 公开只读页面，没有编辑或任务管理功能</p>
+    <nav class="nav">
+      <a href="/api/reports" target="_blank">JSON 数据</a>
+    </nav>
+    <p id="toast" class="toast"></p>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="row">
+        <input id="q" type="text" placeholder="搜索标题 / 主播 / 报告内容" />
+        <select id="streamer">
+          <option value="">全部主播</option>
+        </select>
+        <select id="sort">
+          <option value="new">最新生成</option>
+          <option value="old">最早生成</option>
+          <option value="duration">时长最长</option>
+        </select>
+        <button id="reload" class="secondary">刷新</button>
+        <span id="count" class="hint">加载中…</span>
+      </div>
+      <p class="hint">时间戳（如 01:23:45）点击后跳转到原视频对应位置。</p>
+    </section>
+
+    <section class="reports" id="reports"></section>
+  </main>
+
+  <script src="/common.js?v=6"></script>
+  <script src="/view.js?v=5"></script>
+</body>
+</html>

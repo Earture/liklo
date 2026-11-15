@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>报告库 · liklo</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>📚 报告库</h1>
+    <p class="sub">所有已完成的录播内容报告（详细总结 + 时间戳名场面 + 辛辣锐评）</p>
+    <nav class="nav">
+      <a href="/">← 返回任务列表</a>
+      <a href="/api/reports" target="_blank">JSON 导出</a>
+      <a href="/public">🌐 公开只读报告页（另一个端口）</a>
+    </nav>
+    <p id="toast" class="toast"></p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>筛选</h2>
+      <div class="row">
+        <input id="q" type="text" placeholder="搜索标题 / 主播 / 报告内容" />
+        <select id="streamer">
+          <option value="">全部主播</option>
+        </select>
+        <select id="sort">
+          <option value="new">最新生成</option>
+          <option value="old">最早生成</option>
+          <option value="duration">时长最长</option>
+        </select>
+        <button id="reload" class="secondary">刷新</button>
+        <span id="count" class="hint">加载中…</span>
+      </div>
+      <p class="hint">报告正文默认折叠，点击「展开报告」渲染；报告里的 HH:MM:SS 时间戳可直接跳转到原视频对应位置。</p>
+    </section>
+
+    <div id="reports" class="reports"></div>
+  </main>
+
+  <script src="/common.js?v=6"></script>
+  <script src="/reports.js?v=6"></script>
+</body>
+</html>

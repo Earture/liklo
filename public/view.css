@@ -1,0 +1,25 @@
+/* read-only public report page: same palette as style.css, softer chrome */
+.pub-header {
+  padding: 24px 24px 10px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #ffffff, var(--bg));
+}
+.pub-header h1 { font-size: 26px; color: var(--accent-deep); }
+.pub-header .sub { font-size: 13px; color: var(--muted); }
+
+/* a report is opened on its own when the URL is /r/BVxxxx */
+.report-card.open { border-color: var(--accent); border-left: 3px solid var(--accent); }
+.report-card.open .report-title { color: var(--accent-deep); }
+
+.share { color: var(--muted); font-size: 12px; }
+.share a { color: var(--accent-deep); text-decoration: none; }
+.share a:hover { color: var(--accent); }
+
+footer.pub-footer {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+  color: var(--muted);
+  font-size: 12px;
+}
+footer.pub-footer a { color: var(--accent-deep); }

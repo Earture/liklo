@@ -1,0 +1,12 @@
+{
+  "name": "liklo",
+  "version": "1.0.0",
+  "description": "B站 VTuber 直播录像 → 音频下载 → ASR 转录 → 本地 LLM 内容报告",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

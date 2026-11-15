@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VTuber 录播内容报告 · liklo</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🎤 VTuber 录播内容报告</h1>
+    <p class="sub">B站直播录像 → 仅下载音频 → 分段 ASR 转录 → 本地 LLM 生成报告</p>
+    <nav class="nav">
+      <a href="/reports">📚 报告库（所有已完成报告）</a>
+      <a href="/public">🌐 公开只读报告页（另一个端口）</a>
+    </nav>
+    <p id="toast" class="toast"></p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>任务列表</h2>
+      <div class="row">
+        <select id="job-status">
+          <option value="">全部状态</option>
+          <option value="pending">排队中</option>
+          <option value="running">处理中</option>
+          <option value="ready">待启动</option>
+          <option value="done">完成</option>
+          <option value="error">失败</option>
+          <option value="cancelled">已取消</option>
+        </select>
+        <select id="job-page-size">
+          <option value="20">每页 20 条</option>
+          <option value="50">每页 50 条</option>
+          <option value="100">每页 100 条</option>
+        </select>
+        <span id="jobs-count" class="hint"></span>
+      </div>
+      <div id="jobs" class="jobs"></div>
+      <div id="jobs-pager" class="pager"></div>
+    </section>
+
+    <section class="card" id="detail" hidden>
+      <h2 id="detail-title"></h2>
+      <div id="detail-meta" class="meta"></div>
+      <div id="detail-report" class="report"></div>
+      <details id="detail-transcript" hidden>
+        <summary>带时间戳的转录（点击时间跳转原视频）</summary>
+        <div id="detail-timeline" class="timeline"></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>添加 UP 主 / 主播</h2>
+      <form id="streamer-form">
+        <div class="row">
+          <label>UP 主页链接或 mid
+            <input id="s-mid" type="text" placeholder="https://space.bilibili.com/1290874/upload/video" required />
+          </label>
+          <label>名称（留空则自动识别） <input id="s-name" type="text" placeholder="莉蔻Liko" /></label>
+          <label>英文名（用于文件名） <input id="s-english" type="text" placeholder="liko" /></label>
+        </div>
+        <div class="row">
+          <label>录播关键词 <input id="s-keywords" type="text" placeholder="录播,直播,录像" /></label>
+          <label>标题必须包含（只抓指定主播；留空则默认按主播名称过滤） <input id="s-match" type="text" placeholder="莉蔻,Liko" /></label>
+          <label class="check"><input id="s-monitor" type="checkbox" /> 实时监控（自动抓取最新录播）</label>
+          <button type="submit">保存主播</button>
+        </div>
+      </form>
+      <div class="row">
+        <button id="monitor-run" class="secondary">立即检查新录播</button>
+        <label class="check"><input id="monitor-rediscover" type="checkbox" /> 重新发现已取消的录播</label>
+        <span id="monitor-result" class="hint">监控开启的主播每 10 分钟自动检查一次</span>
+      </div>
+      <div id="monitor-diag" class="hint"></div>
+      <div id="streamers" class="streamers"></div>
+    </section>
+
+    <section class="card">
+      <h2>手动提交录播链接</h2>
+      <form id="job-form">
+        <input id="job-url" type="text" placeholder="https://www.bilibili.com/video/BV..." required />
+        <select id="job-streamer"></select>
+        <label class="check"><input id="job-all-parts" type="checkbox" /> 多P视频：其余P也自动转录（默认只自动跑第1P，其余P建任务但按需启动）</label>
+        <button type="submit">下载并生成报告</button>
+      </form>
+      <p class="hint">流程：yt-dlp 仅下载音频 → 按 5 分钟切分 → 逐段 ASR 转录（串行）→ LLM 生成报告。多P视频每个P都是一条独立任务（各自的音频、转录、报告），标题只有「弹幕版/无弹幕版」这类差别且时长接近的P会被标记为疑似重复，不自动转录。</p>
+    </section>
+
+    <section class="card">
+      <h2>姓名表（修正 ASR 听错的人名）</h2>
+      <form id="name-form">
+        <div class="row">
+          <label>正式姓名 <input id="n-name" type="text" placeholder="克罗雅" required /></label>
+          <label>英文名 <input id="n-english" type="text" placeholder="Kloa" /></label>
+          <label>别名 / 昵称（逗号分隔） <input id="n-aliases" type="text" placeholder="雅雅, 雅团子" /></label>
+          <label>常见错误（ASR 常写成，逗号分隔） <input id="n-mishearings" type="text" placeholder="克朗, 克雅, 克里亚" /></label>
+          <label>备注 <input id="n-note" type="text" placeholder="同期 / 观众捐赠" /></label>
+          <button type="submit">保存姓名</button>
+        </div>
+      </form>
+      <div class="row">
+        <button id="name-seed" class="secondary">从主播与视频标题自动识别姓名</button>
+        <span id="name-result" class="hint">姓名表为空</span>
+      </div>
+      <div id="names" class="names"></div>
+      <p class="hint">报告生成后会自动跑一次姓名修正：程序先按编辑距离找出与姓名表相近的错词（如 克朗 / 克里亚 → 克罗雅），再由本地 LLM 判断哪些确实是人名误写，最后由代码做替换（报告 + 带时间戳的转录都会被修正）。只有姓名表里存在的写法才会被作为正确写法。「常见错误」会自动从已经确认过的修正中学习（同一名字在不同录像里通常错成同一写法），这些写法会被直接作为候选送入 LLM，不需要编辑距离相近；也可以手动补充（如 莉蔻 → 妮可）。</p>
+    </section>
+
+    <section class="card">
+      <h2>服务配置</h2>
+      <div class="cfg-grid">
+        <label>ASR 服务地址
+          <input id="cfg-asr-base" type="text" placeholder="http://127.0.0.1:8000/v1" />
+        </label>
+        <label>ASR 模型 <input id="cfg-asr-model" type="text" placeholder="MOSS-Transcribe-Diarize-q5" /></label>
+        <label>ASR Key <input id="cfg-asr-key" type="text" placeholder="Bearer token" /></label>
+        <label>本地 LLM API 地址
+          <input id="cfg-llm-base" type="text" placeholder="http://127.0.0.1:8080/v1" />
+        </label>
+        <label>LLM 模型 <input id="cfg-llm-model" type="text" placeholder="qwen3.8-flash-next-q2_0" /></label>
+        <label>LLM Key <input id="cfg-llm-key" type="text" placeholder="Bearer token" /></label>
+      </div>
+      <div class="row">
+        <button id="cfg-save">保存配置</button>
+        <button id="cfg-reset" class="secondary">恢复默认</button>
+        <span id="cfg-result" class="hint">未加载</span>
+      </div>
+      <p class="hint">
+        配置写入 <code>data/settings.json</code>，重启后仍然生效，并优先于环境变量。
+        地址需要带 <code>/v1</code>（程序会自动追加 <code>/audio/transcriptions</code> 和 <code>/chat/completions</code>）。
+        改完点「检测 ASR / LLM 是否可用」验证；正在运行的任务下一次请求就会用新地址。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>B站 Cookies（导入 cookies.txt）</h2>
+      <div class="row">
+        <input id="cookie-file" type="file" accept=".txt,text/plain" />
+        <button id="cookie-import">导入</button>
+        <button id="cookie-verify" class="secondary">验证接口是否可用</button>
+        <button id="cookie-clear" class="ghost">清除导入的 cookies</button>
+      </div>
+      <div id="cookie-result" class="hint">未加载</div>
+      <div id="cookie-detail" class="hint"></div>
+      <label class="row">或粘贴 Cookie 头（浏览器 devtools 里的 <code>Cookie: ...</code>）
+        <textarea id="cookie-paste" rows="3" placeholder="buvid3=...; buvid4=...; DSD=...; bili_jct=..."></textarea>
+      </label>
+      <p class="hint">
+        导入的 cookies 写入 <code>data/cookies.txt</code>（统一转成 Netscape 格式），之后所有 B站 API 请求和 <code>yt-dlp</code> 下载都用它，重启后仍然生效。
+        有登录 cookies 时合集、上传列表、搜索这几个接口一般不再被风控（412 / -352）拦。
+        过期条目会被跳过，状态里会列出。清除后回到 <code>LIKLO_COOKIE</code> 指向的默认文件。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>服务状态</h2>
+      <div class="row">
+        <button id="svc-check" class="secondary">检测 ASR / LLM 是否可用</button>
+        <span id="svc-result" class="hint">未检测</span>
+      </div>
+      <p class="hint">检测时会给转写服务发送 1 秒测试音频（默认 60 秒超时）。请求能到达后端但迟迟没有结果，通常说明模型未加载或后端卡住。</p>
+    </section>
+
+    <section class="card">
+      <h2>静态报告库导出（部署到静态托管）</h2>
+      <div class="row">
+        <button id="site-export">生成静态报告库（liklo-site · 本地预览 3120）</button>
+        <span id="site-result" class="hint">未生成</span>
+      </div>
+      <p class="hint">把全部报告 + 带时间戳的转录渲染成纯静态 HTML，写到 <code>liklo-site/</code>：首页 <code>index.html</code>（默认按标题里识别出的直播日期排序，带搜索和排序菜单；标题里没有日期时按生成时间），每份报告一页 <code>reports/BVxxxx.html</code>，同时导出 <code>markdown/BVxxxx.md</code> 和 <code>assets/</code> 样式。时间戳链接保留 <code>?t=</code>（PC）与 <code>start_progress=</code>（手机端 app），整目录上传到任意静态托管即可，不需要后端。每生成一份新报告，静态库会自动重新导出一次。</p>
+    </section>
+
+    <section class="card">
+      <h2>缓存与存储</h2>
+      <div class="row">
+        <button id="cache-clear">清理已完成任务的音频缓存</button>
+        <span id="cache-result" class="hint">未加载</span>
+      </div>
+      <div id="cache-detail" class="hint"></div>
+      <p class="hint">「清理」只删除已完成任务下载下来的音频，以及切分产生的 <code>.segNN</code>、<code>.asr.wav</code>、<code>.concat.txt</code> 中间文件；已不在任务列表里的视频音频（上次删除任务或手动删记录留下的）也一并删除。转录 JSON、ASR 缓存、报告和静态导出都不动，报告页照常可读。排队 / 处理中 / 失败 / 已取消的任务的音频保留，方便重试；清理后对这些任务点「重新转录」会重新下载音频。</p>
+    </section>
+  </main>
+
+  <script src="/common.js?v=6"></script>
+  <script src="/app.js?v=14"></script>
+</body>
+</html>

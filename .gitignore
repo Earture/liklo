@@ -1,0 +1,15 @@
+# generated data and downloads
+data/
+liklo-site/
+*.zip
+
+# external tool binaries (install yt-dlp / ffmpeg yourself, or point LIKLO_YTDLP etc. at them)
+runtime/*.exe
+runtime/*.dll
+
+# local secrets and editor/agent config
+.env
+.env.local
+opencode.json
+*.log
+.DS_Store
